@@ -1,0 +1,243 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>LMS Singleton Demo — All in one</title>
+  <style>
+    /* simple styling */
+    body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", "Helvetica Neue", Arial; background:#f3f6fb; margin:0; padding:32px; color:#111; }
+    .wrap { max-width:900px; margin:0 auto; }
+    .card { background:#fff; border-radius:12px; padding:22px; box-shadow:0 6px 20px rgba(20,30,60,0.08); }
+    h1 { margin:0 0 8px 0; font-size:20px; }
+    p.lead { margin:0 0 16px 0; color:#444; }
+    .buttons { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px; }
+    button { padding:8px 12px; border-radius:8px; border:1px solid #d6dfea; background:#fff; cursor:pointer; }
+    button.primary { background:#2b6ef6; color:#fff; border-color:transparent; }
+    #log { background:#0b1220; color:#cfe8ff; padding:12px; border-radius:8px; height:200px; overflow:auto; white-space:pre-wrap; font-family: monospace; margin-top:12px; }
+    .row { display:flex; gap:16px; margin-top:12px; }
+    .col { flex:1; }
+    label.small { font-size:12px; color:#666; display:block; margin-bottom:6px; }
+    .info { background:#eef6ff; color:#08306b; padding:8px; border-radius:8px; font-size:13px; }
+    code { background:#f0f4ff; padding:2px 6px; border-radius:4px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <h1>LMS Singleton Demo (All-in-one)</h1>
+      <p class="lead">This page demonstrates two Singleton implementations (class-based and module-based) and proves that multiple creations return the same instance.</p>
+
+      <div class="buttons">
+        <button id="classCreate" class="primary">Create Class Instances (new + getInstance)</button>
+        <button id="moduleCreate">Create Module Instances (getInstance)</button>
+        <button id="toggleCurrency">Toggle Currency (affects instance)</button>
+        <button id="clearLog">Clear Log</button>
+      </div>
+
+      <div class="row">
+        <div class="col">
+          <div class="info">
+            <strong>Displayed config</strong>
+            <div>Currency: <span id="currency">—</span></div>
+            <div>Tax rate: <span id="tax">—</span></div>
+          </div>
+        </div>
+        <div class="col">
+          <label class="small">Quick checks</label>
+          <ul>
+            <li>Press <code>Create Class Instances</code> — checks equality of <code>new AppConfigClass()</code> and <code>AppConfigClass.getInstance()</code>.</li>
+            <li>Press <code>Create Module Instances</code> — checks equality of repeated <code>AppConfigModule.getInstance()</code>.</li>
+            <li>Toggle currency to show the same instance is mutated everywhere.</li>
+          </ul>
+        </div>
+      </div>
+
+      <pre id="log">Console log will appear here... (click buttons)</pre>
+    </div>
+
+    <div style="height:18px"></div>
+
+    <div class="card">
+      <h2>Notes & instructor answer (paste into submission)</h2>
+      <p>
+        Implementation: Singleton pattern implemented as an LMS configuration manager (single global AppConfig).
+        Advantages: single central config, avoids duplicate resources, easy global access.
+        Disadvantages: global state is hard to test, can create tight coupling and hidden dependencies.
+      </p>
+      <p>See below for step-by-step explanation and Git commands to submit.</p>
+    </div>
+  </div>
+
+  <script>
+  /*************************************************************************
+   * LMS Singleton Demo - JavaScript
+   *
+   * This file contains:
+   * 1) AppConfigClass - class-based Singleton (allows "new" but returns same instance)
+   * 2) AppConfigModule - module/closure-based Singleton (preferred for strict single instance)
+   * 3) UI handlers to prove a===b (=== equality) across multiple calls
+   *
+   * Behavior to prove:
+   * - For class-based: a = new AppConfigClass(); b = AppConfigClass.getInstance(); c = new AppConfigClass();
+   *   => a === b && b === c
+   * - For module-based: x = AppConfigModule.getInstance(); y = AppConfigModule.getInstance();
+   *   => x === y
+   *************************************************************************/
+
+  // --------------------------
+  // 1) Class-based Singleton
+  // --------------------------
+  class AppConfigClass {
+    constructor() {
+      // If an instance already exists, return it immediately (constructor return works for objects).
+      if (AppConfigClass._instance) {
+        return AppConfigClass._instance;
+      }
+
+      // default config values for LMS
+      this.currency = 'INR';
+      this.taxRate = 0.18;
+      this.discountRules = { student: 0.10, earlyBird: 0.05 };
+      this.createdAt = new Date().toISOString();
+
+      // cache single instance
+      AppConfigClass._instance = this;
+
+      // freeze to avoid accidental new property additions (optional)
+      // Object.freeze(AppConfigClass._instance);
+      return AppConfigClass._instance;
+    }
+
+    set(key, value) { this[key] = value; }
+    get(key) { return this[key]; }
+    toJSON() {
+      return {
+        currency: this.currency,
+        taxRate: this.taxRate,
+        discountRules: this.discountRules,
+        createdAt: this.createdAt
+      };
+    }
+
+    static getInstance() {
+      if (!AppConfigClass._instance) AppConfigClass._instance = new AppConfigClass();
+      return AppConfigClass._instance;
+    }
+  }
+
+  // --------------------------
+  // 2) Module-based Singleton
+  // --------------------------
+  const AppConfigModule = (function () {
+    let instance = null;
+
+    function createInstance() {
+      return {
+        currency: 'INR',
+        taxRate: 0.18,
+        discountRules: { student: 0.10, earlyBird: 0.05 },
+        createdAt: new Date().toISOString(),
+        set(key, value) { this[key] = value; },
+        get(key) { return this[key]; },
+        toJSON() {
+          return {
+            currency: this.currency,
+            taxRate: this.taxRate,
+            discountRules: this.discountRules,
+            createdAt: this.createdAt
+          };
+        }
+      };
+    }
+
+    return {
+      getInstance: function() {
+        if (!instance) instance = createInstance();
+        return instance;
+      }
+    };
+  })();
+
+  // --------------------------
+  // UI helpers & testing code
+  // --------------------------
+  const logEl = document.getElementById('log');
+  const currencyEl = document.getElementById('currency');
+  const taxEl = document.getElementById('tax');
+
+  function appendLog(text) {
+    const time = new Date().toLocaleTimeString();
+    logEl.textContent = `[${time}] ` + text + "\n" + logEl.textContent;
+  }
+
+  function renderFrom(obj) {
+    if (!obj) return;
+    currencyEl.textContent = obj.currency;
+    taxEl.textContent = obj.taxRate;
+  }
+
+  // initial render from the singleton
+  renderFrom(AppConfigModule.getInstance());
+  appendLog("Page loaded. Rendered values from AppConfigModule.getInstance()");
+
+  document.getElementById('classCreate').addEventListener('click', () => {
+    // create using new and using getInstance - should be same object
+    const a = new AppConfigClass();
+    const b = AppConfigClass.getInstance();
+    const c = new AppConfigClass();
+
+    const checks = [
+      `a === b: ${a === b}`,
+      `b === c: ${b === c}`,
+      `a.createdAt === b.createdAt: ${a.createdAt === b.createdAt}`,
+      `Instance data: ${JSON.stringify(a.toJSON(), null, 2)}`
+    ].join('\n');
+
+    appendLog("Class-based instance check:\n" + checks);
+    renderFrom(a);
+    console.log("class instances:", {a,b,c});
+  });
+
+  document.getElementById('moduleCreate').addEventListener('click', () => {
+    const x = AppConfigModule.getInstance();
+    const y = AppConfigModule.getInstance();
+    const z = AppConfigModule.getInstance();
+
+    const checks = [
+      `x === y: ${x === y}`,
+      `y === z: ${y === z}`,
+      `Instance data: ${JSON.stringify(x.toJSON(), null, 2)}`
+    ].join('\n');
+
+    appendLog("Module-based instance check:\n" + checks);
+    renderFrom(x);
+    console.log("module instances:", {x,y,z});
+  });
+
+  document.getElementById('toggleCurrency').addEventListener('click', () => {
+    // toggle the module singleton's currency and show persistence across views
+    const cfg = AppConfigModule.getInstance();
+    cfg.currency = (cfg.currency === 'INR') ? 'USD' : 'INR';
+    appendLog(`Toggled currency to ${cfg.currency} on module singleton (AppConfigModule.getInstance()).`);
+    renderFrom(cfg);
+    console.log("toggled currency:", cfg.currency);
+  });
+
+  document.getElementById('clearLog').addEventListener('click', () => {
+    logEl.textContent = '';
+  });
+
+  // Extra console helper (so you can manually test from DevTools)
+  window.AppConfigClass = AppConfigClass;
+  window.AppConfigModule = AppConfigModule;
+
+  // Helpful instructions printed to real console
+  console.log("LMS Singleton Demo loaded. In console you can run:");
+  console.log("  new AppConfigClass()  // class-based");
+  console.log("  AppConfigClass.getInstance()");
+  console.log("  AppConfigModule.getInstance() // module-based");
+  console.log("Test equality with === to prove single instance.");
+  </script>
+</body>
+</html>
